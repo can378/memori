@@ -232,7 +232,7 @@ class SearchService:
 
             logger.debug(f"Executing SQLite FTS query with params: {params}")
             result = self.session.execute(text(sql_query), params)
-            rows = [dict(row) for row in result]
+            rows = [dict(row._mapping) for row in result]
             logger.debug(f"SQLite FTS search returned {len(rows)} results")
 
             # Log details of first result for debugging
@@ -305,7 +305,7 @@ class SearchService:
                     ).limit(short_limit)
                 ).fetchall()
 
-                results.extend([dict(row) for row in short_results])
+                results.extend([dict(row._mapping) for row in short_results])
 
             # Search long-term memory if requested
             if search_long_term:
@@ -336,7 +336,7 @@ class SearchService:
                     ).limit(long_limit)
                 ).fetchall()
 
-                results.extend([dict(row) for row in long_results])
+                results.extend([dict(row._mapping) for row in long_results])
 
             return results
 
@@ -407,8 +407,9 @@ class SearchService:
                     .order_by(text("search_score DESC"))
                     .limit(short_limit)
                 ).fetchall()
-
-                results.extend([dict(row) for row in short_results])
+                
+                
+                results.extend([dict(row._mapping) for row in short_results])
 
             # Search long-term memory if requested
             if search_long_term:
@@ -441,7 +442,7 @@ class SearchService:
                     .limit(long_limit)
                 ).fetchall()
 
-                results.extend([dict(row) for row in long_results])
+                results.extend([dict(row._mapping) for row in long_results])
 
             return results
 
