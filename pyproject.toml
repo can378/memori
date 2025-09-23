@@ -37,6 +37,7 @@ dependencies = [
     "litellm>=1.0.0",
     "pymysql>=1.1.2",
     "mysql-connector-python>=9.4.0",
+    "psycopg2-binary>=2.9.10",
 ]
 
 [project.optional-dependencies]
