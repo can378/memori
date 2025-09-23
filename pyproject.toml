@@ -9,7 +9,7 @@ description = "The Open-Source Memory Layer for AI Agents & Multi-Agent Systems"
 authors = [{name = "GibsonAI Team", email = "noc@gibsonai.com"}]
 license = {text = "Apache-2.0"}
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10,<3.13"
 keywords = ["ai", "memory", "agents", "llm", "artificial-intelligence", "multi-agent"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -35,6 +35,8 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "openai>=1.0.0",
     "litellm>=1.0.0",
+    "pymysql>=1.1.2",
+    "mysql-connector-python>=9.4.0",
 ]
 
 [project.optional-dependencies]
