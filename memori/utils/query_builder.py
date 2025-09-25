@@ -159,9 +159,7 @@ class QueryBuilder:
 
         # Handle different conflict resolution strategies per database
         if on_conflict == "REPLACE":
-            if self.dialect == DatabaseDialect.SQLITE:
-                query = f"INSERT OR REPLACE INTO {table} ({columns_str}) VALUES ({placeholders})"
-            elif self.dialect == DatabaseDialect.POSTGRESQL:
+            if self.dialect == DatabaseDialect.POSTGRESQL:
                 # PostgreSQL uses ON CONFLICT clause
                 primary_key = self._get_primary_key_column(columns)
                 if primary_key:

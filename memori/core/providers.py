@@ -45,7 +45,7 @@ class ProviderConfig:
     project: Optional[str] = None
 
     # Model configuration
-    model: Optional[str] = None  # User can specify model, defaults to gpt-4o if not set
+    model: Optional[str] = None  # defaults to gpt-4o if not set
 
     # Additional headers for custom providers
     default_headers: Optional[Dict[str, str]] = None

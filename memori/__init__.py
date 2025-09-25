@@ -19,8 +19,6 @@ from .config import (
     LoggingSettings,
     MemoriSettings,
 )
-from .core.database import DatabaseManager
-
 # Core components
 from .core.memory import Memori
 
@@ -88,7 +86,7 @@ except ImportError:
 _all_components = [
     # Core
     "Memori",
-    "DatabaseManager",
+  
     # Configuration
     "MemoriSettings",
     "DatabaseSettings",

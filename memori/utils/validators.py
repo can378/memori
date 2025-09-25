@@ -94,7 +94,7 @@ class DataValidator:
         if not isinstance(value, str):
             raise ValidationError(f"{field_name} must be a string")
 
-        valid_schemes = ["sqlite://", "sqlite:///", "postgresql://", "mysql://"]
+        valid_schemes = ["postgresql://"]
         if not any(value.startswith(scheme) for scheme in valid_schemes):
             raise ValidationError(f"{field_name} must use a supported database scheme")
 
