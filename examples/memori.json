@@ -12,7 +12,7 @@
     "temperature": 0.1
   },
   "memory": {
-    "namespace": "example_project",
+    "namespace": "default",
     "retention_policy": "30_days",
     "importance_threshold": 0.3,
     "context_limit": 3,

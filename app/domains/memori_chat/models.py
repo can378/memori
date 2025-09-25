@@ -81,6 +81,16 @@ class ConverseRequest(BaseModel):
     messages: Union[str, List[ChatMessage]]
 
 
+class ConverseIn(BaseModel):
+    session_id: str | None = None
+    user_id: str | None = None
+    messages: list[dict]
+
+
+class ChatPair(BaseModel):
+    user_input: str
+    ai_output: str
+
 
 
 def _ensure_str_metadata(md: Optional[Dict[str, Any] | str]) -> str:
@@ -143,6 +153,13 @@ class ChatSessionRead(BaseModel):
     class Config:
         from_attributes = True
 
+
+class SessionSelectRequest(BaseModel):
+    session_id: Optional[str] = None
+    user_id: str
+    chat_title: Optional[str] = None
+    metadata_json: Optional[dict] = None
+    
 
 # 변환 유틸리티
 def encode_metadata_for_db(md: Optional[Dict[str, Any]]) -> str:

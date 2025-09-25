@@ -6,6 +6,10 @@ like OpenAI, Anthropic, etc. It bridges the gap between memori's stateful memory
 and stateless LLM API calls by maintaining conversation history and context.
 """
 
+# 이거 추가
+from app.core.context import get_session_id
+
+
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -95,40 +99,28 @@ class ConversationManager:
             f"timeout={session_timeout_minutes}min, max_history={max_history_per_session}"
         )
 
+   
     def get_or_create_session(self, session_id: str = None) -> ConversationSession:
-        """
-        Get existing session or create new one
+        
+        # sid 결정
+        sid = get_session_id()
+        if not sid:
+            return None
 
-        Args:
-            session_id: Optional session ID. If None, generates new one.
+        print("❤️❤️❤️now session id=", sid)
 
-        Returns:
-            ConversationSession instance
-        """
-        if session_id is None:
-            session_id = str(uuid.uuid4())
-
-        # Clean up expired sessions first
         self._cleanup_expired_sessions()
-
-        # Get existing session or create new one
-        if session_id not in self.sessions:
+        if sid not in self.sessions:
             if len(self.sessions) >= self.max_sessions:
-                # Remove oldest session to make room
-                oldest_session_id = min(
-                    self.sessions.keys(),
-                    key=lambda sid: self.sessions[sid].last_accessed,
-                )
+                oldest_session_id = min(self.sessions, key=lambda x: self.sessions[x].last_accessed)
                 del self.sessions[oldest_session_id]
-                logger.debug(f"Removed oldest session {oldest_session_id} to make room")
-
-            self.sessions[session_id] = ConversationSession(session_id=session_id)
-            logger.debug(f"Created new conversation session: {session_id}")
+            self.sessions[sid] = ConversationSession(session_id=sid)
         else:
-            # Update last accessed time
-            self.sessions[session_id].last_accessed = datetime.now()
+            self.sessions[sid].last_accessed = datetime.now()
 
-        return self.sessions[session_id]
+        self._session_id = sid
+        return self.sessions[sid]
+
 
     def add_user_message(
         self, session_id: str, content: str, metadata: Dict[str, Any] = None

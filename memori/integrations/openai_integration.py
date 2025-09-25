@@ -25,9 +25,9 @@ Usage:
     )
     # Conversation is automatically recorded to Memori
 """
-
+import json
 from loguru import logger
-
+from openai.types.chat import ChatCompletion
 # Global registry of enabled Memori instances
 _enabled_memori_instances = []
 
@@ -46,10 +46,10 @@ class OpenAIInterceptor:
         """Patch OpenAI module to intercept API calls."""
         if cls._is_patched:
             return
-
+        
         try:
             import openai
-
+            print("😈 patch openai called")
             # Patch sync OpenAI client
             if hasattr(openai, "OpenAI"):
                 cls._patch_client_class(openai.OpenAI, "sync")
@@ -57,13 +57,6 @@ class OpenAIInterceptor:
             # Patch async OpenAI client
             if hasattr(openai, "AsyncOpenAI"):
                 cls._patch_async_client_class(openai.AsyncOpenAI, "async")
-
-            # Patch Azure clients if available
-            if hasattr(openai, "AzureOpenAI"):
-                cls._patch_client_class(openai.AzureOpenAI, "azure_sync")
-
-            if hasattr(openai, "AsyncAzureOpenAI"):
-                cls._patch_async_client_class(openai.AsyncAzureOpenAI, "azure_async")
 
             cls._is_patched = True
             logger.debug("OpenAI module patched for automatic interception")
@@ -73,6 +66,9 @@ class OpenAIInterceptor:
         except Exception as e:
             logger.error(f"Failed to patch OpenAI module: {e}")
 
+
+
+    # open ai 가 호출 직전에 _prepare_options, 호출 직후에 _process_response 가 호출됨
     @classmethod
     def _patch_client_class(cls, client_class, client_type):
         """Patch a sync OpenAI client class."""
@@ -103,7 +99,7 @@ class OpenAIInterceptor:
                 stream_cls=stream_cls,
                 **kwargs,
             )
-
+            
             # Record conversation for enabled Memori instances
             if not stream:  # Don't record streaming here - handle separately
                 cls._record_conversation_for_enabled_instances(
@@ -134,6 +130,8 @@ class OpenAIInterceptor:
     @classmethod
     def _patch_async_client_class(cls, client_class, client_type):
         """Patch an async OpenAI client class."""
+
+        print("😈 patch async client class called")
         # Store the original unbound method
         original_key = f"{client_type}_process_response"
         if original_key not in cls._original_methods:
@@ -161,7 +159,7 @@ class OpenAIInterceptor:
                 stream_cls=stream_cls,
                 **kwargs,
             )
-
+            
             # Record conversation for enabled Memori instances
             if not stream:
                 cls._record_conversation_for_enabled_instances(
@@ -264,6 +262,8 @@ class OpenAIInterceptor:
 
                     for pattern in internal_patterns:
                         if pattern in content:
+                            print("-----this is not a user message-----")
+                            # print(content)
                             return True
 
             return False
@@ -280,13 +280,15 @@ class OpenAIInterceptor:
                 try:
                     json_data = getattr(options, "json_data", None) or {}
 
-                    if "messages" in json_data:
+                    if "messages" in json_data and isinstance(response, ChatCompletion):
+                        print("😈record conversation for enabled  - message")
                         # Skip internal agent processing calls
                         if cls._is_internal_agent_call(json_data):
                             continue
                         # Chat completions
                         memori_instance._record_openai_conversation(json_data, response)
                     elif "prompt" in json_data:
+                        print("😈record conversation for enabled  - prompt")
                         # Legacy completions
                         cls._record_legacy_completion(
                             memori_instance, json_data, response, client_type
@@ -416,11 +418,11 @@ def register_memori_instance(memori_instance):
         memori_instance: Memori instance to register
     """
     global _enabled_memori_instances
-
+    print("😈 register memori instance called")
     if memori_instance not in _enabled_memori_instances:
         _enabled_memori_instances.append(memori_instance)
         logger.debug("Registered Memori instance for OpenAI interception")
-
+    
     # Ensure OpenAI is patched
     OpenAIInterceptor.patch_openai()
 

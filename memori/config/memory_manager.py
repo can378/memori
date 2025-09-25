@@ -88,7 +88,8 @@ class MemoryManager:
         self.organization = organization
         self.kwargs = kwargs
 
-        self._session_id = str(uuid.uuid4())
+        # self._session_id = str(uuid.uuid4())
+        self._session_id = "tlqkf"
         self._enabled = False
 
         # LiteLLM native callback manager

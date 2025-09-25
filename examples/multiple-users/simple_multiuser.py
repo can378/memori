@@ -5,13 +5,13 @@ Basic demonstration of creating separate memories for different users using name
 
 from dotenv import load_dotenv
 from litellm import completion
-
+import os
 from memori import Memori
 
 load_dotenv()
 
 # Global database for all users
-DATABASE_PATH = "sqlite:///multiuser_memory.db"
+DATABASE_PATH = os.getenv("MYSQL_DB_URL", "sqlite:///multiuser_memory.db")
 
 
 def create_user_memory(user_id: str) -> Memori:

@@ -27,7 +27,7 @@ from ..utils.exceptions import DatabaseError, MemoriError
 from ..utils.logging import LoggingManager
 from ..utils.pydantic_models import ConversationContext
 from .conversation import ConversationManager
-
+from app.core.context import get_session_id
 
 class Memori:
     """
@@ -255,7 +255,8 @@ class Memori:
 
         # State tracking
         self._enabled = False
-        self._session_id = str(uuid.uuid4())
+        # self._session_id = str(uuid.uuid4())
+        self._session_id = "tlqkfdlrjsi"
         self._conscious_context_injected = (
             False  # Track if conscious context was already injected
         )
@@ -571,8 +572,9 @@ class Memori:
                 f"Conscious-ingest: Failed to copy memory {memory_row[0]} to short-term: {e}"
             )
             return False
-
-    def enable(self, interceptors: Optional[List[str]] = None):
+        
+    
+    def enable(self, interceptors: Optional[List[str]] = None,session_id: Optional[str] = None):
         """
         Enable universal memory recording using LiteLLM's native callback system.
 
@@ -587,7 +589,8 @@ class Memori:
             return
 
         self._enabled = True
-        self._session_id = str(uuid.uuid4())
+        # sid = (session_id or str(uuid.uuid4())).strip()
+        self._session_id = session_id or get_session_id() or "tlqkfdkslausansep"
 
         # Register for automatic OpenAI interception
         try:
@@ -1191,6 +1194,7 @@ class Memori:
             # Enhanced metadata extraction
             metadata = self._extract_openai_metadata(kwargs, response, tokens_used)
 
+            print("💜record open ai conversation")
             # Record conversation
             self.record_conversation(
                 user_input=user_input,
@@ -1372,6 +1376,7 @@ class Memori:
 
             # Enhanced metadata extraction
             metadata = self._extract_anthropic_metadata(kwargs, response, tokens_used)
+            print("💜record anthropic conversation")
 
             # Record conversation
             self.record_conversation(
@@ -1591,6 +1596,7 @@ class Memori:
                         "total_tokens": getattr(usage, "total_tokens", 0),
                     }
                 )
+            print("💜record lite llm conversation")
 
             # Record the conversation
             if user_input and ai_output:
@@ -1702,6 +1708,7 @@ class Memori:
         if not self._enabled:
             raise MemoriError("Memori is not enabled. Call enable() first.")
 
+        print("💟save conversation in db")
         # Parse response
         response_text, detected_model = self._parse_llm_response(ai_output)
         response_model = model or detected_model

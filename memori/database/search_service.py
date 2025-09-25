@@ -375,7 +375,7 @@ class SearchService:
 
             # Prepare query for tsquery - handle spaces and special characters
             # Convert simple query to tsquery format (join words with &)
-            tsquery_text = " & ".join(query.split())
+            
 
             # Search short-term memory if requested
             if search_short_term:
@@ -385,8 +385,9 @@ class SearchService:
 
                 # Add tsvector search
                 ts_query = text(
-                    "search_vector @@ to_tsquery('english', :query)"
-                ).params(query=tsquery_text)
+                    "search_vector @@ websearch_to_tsquery('english', :query)"
+                ).params(query=query)
+
                 short_query = short_query.filter(ts_query)
 
                 # Add category filter
@@ -399,8 +400,8 @@ class SearchService:
                 short_results = self.session.execute(
                     short_query.statement.add_columns(
                         text(
-                            "ts_rank(search_vector, to_tsquery('english', :query)) as search_score"
-                        ).params(query=tsquery_text),
+                            "ts_rank(search_vector, websearch_to_tsquery('english', :query)) as search_score"
+                        ).params(query=query),
                         text("'short_term' as memory_type"),
                         text("'postgresql_fts' as search_strategy"),
                     )
@@ -419,8 +420,8 @@ class SearchService:
 
                 # Add tsvector search
                 ts_query = text(
-                    "search_vector @@ to_tsquery('english', :query)"
-                ).params(query=tsquery_text)
+                    "search_vector @@ websearch_to_tsquery('english', :query)"
+                ).params(query=query)
                 long_query = long_query.filter(ts_query)
 
                 # Add category filter
@@ -433,8 +434,8 @@ class SearchService:
                 long_results = self.session.execute(
                     long_query.statement.add_columns(
                         text(
-                            "ts_rank(search_vector, to_tsquery('english', :query)) as search_score"
-                        ).params(query=tsquery_text),
+                            "ts_rank(search_vector, websearch_to_tsquery('english', :query)) as search_score"
+                        ).params(query=query),
                         text("'long_term' as memory_type"),
                         text("'postgresql_fts' as search_strategy"),
                     )

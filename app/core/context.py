@@ -55,13 +55,22 @@ def bind_stream(session_id: str, agen: AsyncGenerator[Any, None]) -> AsyncGenera
 
 def attach_session_to_openai_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     """
-    OpenAI 호출 인자에 session_id 주입(인터셉터가 읽기 쉬운 위치).
-    라우터/서비스에서 호출하거나, 패치 훅에서 호출.
+    OpenAI 호출 인자에 session_id 주입 (서버가 인식할 수 있는 안전한 위치).
     """
     sid = get_session_id()
     if not sid:
         return payload
-    payload.setdefault("extra_body", {}).setdefault("memori", {})["session_id"] = sid
-    # 필요시 백업 경로:
+
+    # 헤더에만 심기
     payload.setdefault("extra_headers", {})["x-memori-session-id"] = sid
+
+    # (옵션) 시스템 메시지 태그도 추가 — 추적/디버깅용
+    msgs = payload.setdefault("messages", [])
+    has_tag = any(
+        m.get("role") == "system" and "[memori-session:" in str(m.get("content", ""))
+        for m in msgs
+    )
+    if not has_tag:
+        msgs.insert(0, {"role": "system", "content": f"[memori-session:{sid}]"})
+
     return payload

@@ -180,6 +180,58 @@ Be strategic and comprehensive in your search planning."""
             logger.error(f"Search planning failed: {e}")
             return self._create_fallback_query(query)
 
+
+    def _normalize_result(result) -> Optional[dict]:
+        """
+        입력: 다양한 형태의 검색 결과
+        - {'ShortTermMemory': <ShortTermMemory ...>, 'composite_score': 0.35}
+        - {'LongTermMemory': <LongTermMemory ...>, 'score': 0.42}
+        - 이미 표준 dict인 경우
+        출력: {'memory_id', 'created_at', 'importance_score', 'category_primary', 'summary', 'searchable_content', ...}
+        """
+        # 이미 표준 dict 형태고 memory_id가 있으면 그대로
+        if isinstance(result, dict) and "memory_id" in result:
+            return result
+
+        # ORM 객체가 dict로 감싸진 케이스
+        if isinstance(result, dict):
+            orm_obj = None
+            if "ShortTermMemory" in result:
+                orm_obj = result["ShortTermMemory"]
+            elif "LongTermMemory" in result:
+                orm_obj = result["LongTermMemory"]
+
+            if orm_obj is not None:
+                # 안전하게 속성 뽑기
+                def g(obj, name, default=None):
+                    return getattr(obj, name, default)
+
+                # 중요도/점수 추출
+                importance = (
+                    result.get("composite_score") or
+                    result.get("score") or
+                    g(orm_obj, "importance_score", 0.0)
+                )
+
+                normalized = {
+                    "memory_id": g(orm_obj, "memory_id") or g(orm_obj, "id"),
+                    "created_at": g(orm_obj, "created_at"),
+                    "importance_score": importance,
+                    "category_primary": g(orm_obj, "category_primary") or g(orm_obj, "category"),
+                    "summary": g(orm_obj, "summary"),
+                    "searchable_content": g(orm_obj, "searchable_content") or g(orm_obj, "content"),
+                    # 필요 시 확장 필드
+                    "raw_obj": orm_obj,  # 디버깅/추적용
+                }
+                # memory_id가 없으면 무시
+                if normalized["memory_id"]:
+                    return normalized
+                return None
+
+        # 전혀 모르는 타입이면 스킵
+        return None
+
+
     def execute_search(
         self, query: str, db_manager, namespace: str = "default", limit: int = 10
     ) -> List[Dict[str, Any]]:
@@ -196,6 +248,41 @@ Be strategic and comprehensive in your search planning."""
             List of relevant memory items with search metadata
         """
         try:
+            # ── (1) 결과 정규화: 최소 추가 함수 ─────────────────────────────────────
+            def _normalize_result(result) -> Optional[dict]:
+                # 이미 표준 dict 형태라면 그대로 사용
+                if isinstance(result, dict) and "memory_id" in result:
+                    return result
+
+                # {'ShortTermMemory': <ORM>, 'composite_score': ...} 형태 처리
+                if isinstance(result, dict):
+                    orm_obj = None
+                    if "ShortTermMemory" in result:
+                        orm_obj = result["ShortTermMemory"]
+                    elif "LongTermMemory" in result:
+                        orm_obj = result["LongTermMemory"]
+
+                    if orm_obj is not None:
+                        g = lambda o, n, d=None: getattr(o, n, d)
+                        importance = (
+                            result.get("composite_score")
+                            or result.get("score")
+                            or g(orm_obj, "importance_score", 0.0)
+                        )
+                        normalized = {
+                            "memory_id": g(orm_obj, "memory_id") or g(orm_obj, "id"),
+                            "created_at": g(orm_obj, "created_at"),
+                            "importance_score": importance,
+                            "category_primary": g(orm_obj, "category_primary") or g(orm_obj, "category"),
+                            "summary": g(orm_obj, "summary"),
+                            "searchable_content": g(orm_obj, "searchable_content") or g(orm_obj, "content"),
+                        }
+                        return normalized if normalized.get("memory_id") else None
+
+                # 일반 dict이지만 memory_id가 없는 경우 등은 스킵
+                return None
+            # ─────────────────────────────────────────────────────────────────────
+
             # Plan the search
             search_plan = self.plan_search(query)
             logger.debug(
@@ -204,7 +291,8 @@ Be strategic and comprehensive in your search planning."""
 
             all_results = []
             seen_memory_ids = set()
-
+            # print("💜execute search1")
+           
             # Execute keyword search (primary strategy)
             if (
                 search_plan.entity_filters
@@ -219,16 +307,21 @@ Be strategic and comprehensive in your search planning."""
                 logger.debug(f"Keyword search returned {len(keyword_results)} results")
 
                 for result in keyword_results:
-                    if (
-                        isinstance(result, dict)
-                        and result.get("memory_id") not in seen_memory_ids
-                    ):
-                        seen_memory_ids.add(result["memory_id"])
-                        result["search_strategy"] = "keyword_search"
-                        result["search_reasoning"] = (
-                            f"Keyword match for: {', '.join(search_plan.entity_filters)}"
-                        )
-                        all_results.append(result)
+                    # print(f"[DEBUG] raw result type={type(result)} keys={list(result.keys()) if isinstance(result, dict) else None}")
+                    norm = _normalize_result(result)
+                    if not norm:
+                        # logger.warning(f"Result cannot be normalized: {result}")
+                        continue
+                    memory_id = norm.get("memory_id")
+                    if not memory_id or memory_id in seen_memory_ids:
+                        continue
+                    seen_memory_ids.add(memory_id)
+                    norm["search_strategy"] = "keyword_search"
+                    norm["search_reasoning"] = (
+                        f"Keyword match for: {', '.join(search_plan.entity_filters)}"
+                    )
+                    all_results.append(norm)
+            # print("💜execute search2")
 
             # Execute category-based search
             if (
@@ -256,6 +349,7 @@ Be strategic and comprehensive in your search planning."""
                             f"Category match: {', '.join([c.value for c in search_plan.category_filters])}"
                         )
                         all_results.append(result)
+            # print("💜execute search3")
 
             # Execute importance-based search
             if (
@@ -283,6 +377,7 @@ Be strategic and comprehensive in your search planning."""
                             f"High importance (≥{search_plan.min_importance})"
                         )
                         all_results.append(result)
+            # print("💜execute search4")
 
             # If no specific strategies worked, do a general search
             if not all_results:
@@ -311,6 +406,7 @@ Be strategic and comprehensive in your search planning."""
                     )
 
             all_results = valid_results
+            # print("💜execute search5")
 
             # Sort by relevance (importance score + recency)
             if all_results:
