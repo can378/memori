@@ -18,8 +18,7 @@ class DatabaseConnectionUtils:
     # Default system databases for each engine
     DEFAULT_DATABASES = {
         "postgresql": "postgres",
-        "mysql": "mysql",
-        "sqlite": None,  # SQLite doesn't need default DB
+        
     }
 
     @classmethod
@@ -52,7 +51,7 @@ class DatabaseConnectionUtils:
             # Extract components
             engine = parsed.scheme.split("+")[
                 0
-            ].lower()  # Handle postgresql+psycopg2, mysql+pymysql
+            ].lower()  # Handle postgresql+psycopg2
             driver = parsed.scheme.split("+")[1] if "+" in parsed.scheme else None
             user = parsed.username or ""
             password = parsed.password or ""
@@ -91,7 +90,7 @@ class DatabaseConnectionUtils:
                 "default_url": default_url,
                 "original_url": connection_string,
                 "needs_creation": engine
-                in ["postgresql", "mysql"],  # SQLite auto-creates
+                in ["postgresql"],  # SQLite auto-creates
             }
 
         except Exception as e:

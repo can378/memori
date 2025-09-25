@@ -12,6 +12,10 @@ from loguru import logger
 
 # Interceptor system removed - using LiteLLM native callbacks only
 
+from dotenv import load_dotenv
+import os
+load_dotenv()
+DB_URL = os.getenv("POSTGRE_DB_URL")
 
 class MemoryManager:
     """
@@ -24,7 +28,7 @@ class MemoryManager:
 
     def __init__(
         self,
-        database_connect: str = "sqlite:///memori.db",
+        database_connect: str = DB_URL,
         template: str = "basic",
         mem_prompt: Optional[str] = None,
         conscious_ingest: bool = False,
@@ -89,7 +93,7 @@ class MemoryManager:
         self.kwargs = kwargs
 
         # self._session_id = str(uuid.uuid4())
-        self._session_id = "tlqkf"
+        self._session_id = "dkskdkskksk"
         self._enabled = False
 
         # LiteLLM native callback manager

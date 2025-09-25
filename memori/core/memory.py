@@ -29,6 +29,11 @@ from ..utils.pydantic_models import ConversationContext
 from .conversation import ConversationManager
 from app.core.context import get_session_id
 
+from dotenv import load_dotenv
+import os
+load_dotenv()
+DB_URL = os.getenv("POSTGRE_DB_URL")
+
 class Memori:
     """
     The main Memori memory layer for AI agents.
@@ -39,7 +44,7 @@ class Memori:
 
     def __init__(
         self,
-        database_connect: str = "sqlite:///memori.db",
+        database_connect: str =DB_URL,
         template: str = "basic",
         mem_prompt: Optional[str] = None,
         conscious_ingest: bool = False,
@@ -256,7 +261,7 @@ class Memori:
         # State tracking
         self._enabled = False
         # self._session_id = str(uuid.uuid4())
-        self._session_id = "tlqkfdlrjsi"
+        self._session_id = "dkskdkskdlrjsi"
         self._conscious_context_injected = (
             False  # Track if conscious context was already injected
         )
@@ -590,7 +595,7 @@ class Memori:
 
         self._enabled = True
         # sid = (session_id or str(uuid.uuid4())).strip()
-        self._session_id = session_id or get_session_id() or "tlqkfdkslausansep"
+        self._session_id = session_id or get_session_id() or "dkskdkskdkslausansep"
 
         # Register for automatic OpenAI interception
         try:

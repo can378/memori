@@ -2,7 +2,7 @@
 Cross-database query parameter translator for Memori v2.0
 
 This module provides database-agnostic parameter translation to handle
-differences between SQLite, PostgreSQL, and MySQL, particularly for
+differences between PostgreSQL particularly for
 boolean values and other database-specific syntax.
 """
 
@@ -16,7 +16,7 @@ class QueryParameterTranslator:
     Translates query parameters to be compatible with different database engines.
 
     Handles cross-database compatibility issues like:
-    - Boolean values (SQLite: 0/1, PostgreSQL: TRUE/FALSE, MySQL: 0/1)
+    - Boolean values (PostgreSQL: TRUE/FALSE)
     - Date/time formats
     - Case sensitivity
     - Data type constraints
@@ -27,7 +27,7 @@ class QueryParameterTranslator:
         Initialize translator for specific database type.
 
         Args:
-            database_type: Database engine name ('sqlite', 'postgresql', 'mysql')
+            database_type: Database engine name ('postgresql')
         """
         self.database_type = database_type.lower()
         logger.debug(f"QueryParameterTranslator initialized for {self.database_type}")
@@ -93,10 +93,6 @@ class QueryParameterTranslator:
         if self.database_type == "postgresql":
             # PostgreSQL uses TRUE/FALSE
             return value  # SQLAlchemy handles the TRUE/FALSE conversion
-
-        elif self.database_type in ("sqlite", "mysql"):
-            # SQLite and MySQL use 0/1 for booleans
-            return int(value)
 
         else:
             # Default: return as-is and let SQLAlchemy handle it

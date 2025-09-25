@@ -307,9 +307,7 @@ def validate_memori_security_config() -> Dict[str, Any]:
         # Check database adapters
         try:
             from ..database.adapters import (
-                MySQLSearchAdapter,  # noqa: F401
                 PostgreSQLSearchAdapter,  # noqa: F401
-                SQLiteSearchAdapter,  # noqa: F401
             )
 
             validation_results["database_adapters"] = True

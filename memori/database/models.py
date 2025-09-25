@@ -180,26 +180,6 @@ class LongTermMemory(Base):
     )
 
 
-# Database-specific configurations
-def configure_mysql_fulltext(engine):
-    """Configure MySQL FULLTEXT indexes"""
-    if engine.dialect.name == "mysql":
-        with engine.connect() as conn:
-            try:
-                # Create FULLTEXT indexes for MySQL
-                conn.execute(
-                    "ALTER TABLE short_term_memory ADD FULLTEXT INDEX ft_short_term_search (searchable_content, summary)"
-                )
-                conn.execute(
-                    "ALTER TABLE long_term_memory ADD FULLTEXT INDEX ft_long_term_search (searchable_content, summary)"
-                )
-                conn.execute(
-                    "ALTER TABLE long_term_memory ADD FULLTEXT INDEX ft_long_term_topic (topic)"
-                )
-                conn.commit()
-            except Exception:
-                # Indexes might already exist
-                pass
 
 
 def configure_postgresql_fts(engine):
@@ -268,70 +248,6 @@ def configure_postgresql_fts(engine):
                 pass
 
 
-def configure_sqlite_fts(engine):
-    """Configure SQLite FTS5"""
-    if engine.dialect.name == "sqlite":
-        with engine.connect() as conn:
-            try:
-                # Create FTS5 virtual table for SQLite
-                conn.execute(
-                    """
-                    CREATE VIRTUAL TABLE IF NOT EXISTS memory_search_fts USING fts5(
-                        memory_id,
-                        memory_type,
-                        namespace,
-                        searchable_content,
-                        summary,
-                        category_primary,
-                        content='',
-                        contentless_delete=1
-                    )
-                """
-                )
-
-                # Create triggers to maintain FTS5 index
-                conn.execute(
-                    """
-                    CREATE TRIGGER IF NOT EXISTS short_term_memory_fts_insert AFTER INSERT ON short_term_memory
-                    BEGIN
-                        INSERT INTO memory_search_fts(memory_id, memory_type, namespace, searchable_content, summary, category_primary)
-                        VALUES (NEW.memory_id, 'short_term', NEW.namespace, NEW.searchable_content, NEW.summary, NEW.category_primary);
-                    END
-                """
-                )
-
-                conn.execute(
-                    """
-                    CREATE TRIGGER IF NOT EXISTS long_term_memory_fts_insert AFTER INSERT ON long_term_memory
-                    BEGIN
-                        INSERT INTO memory_search_fts(memory_id, memory_type, namespace, searchable_content, summary, category_primary)
-                        VALUES (NEW.memory_id, 'long_term', NEW.namespace, NEW.searchable_content, NEW.summary, NEW.category_primary);
-                    END
-                """
-                )
-
-                conn.execute(
-                    """
-                    CREATE TRIGGER IF NOT EXISTS short_term_memory_fts_delete AFTER DELETE ON short_term_memory
-                    BEGIN
-                        DELETE FROM memory_search_fts WHERE memory_id = OLD.memory_id AND memory_type = 'short_term';
-                    END
-                """
-                )
-
-                conn.execute(
-                    """
-                    CREATE TRIGGER IF NOT EXISTS long_term_memory_fts_delete AFTER DELETE ON long_term_memory
-                    BEGIN
-                        DELETE FROM memory_search_fts WHERE memory_id = OLD.memory_id AND memory_type = 'long_term';
-                    END
-                """
-                )
-
-                conn.commit()
-            except Exception:
-                # FTS5 might not be available
-                pass
 
 
 class DatabaseManager:
@@ -368,12 +284,11 @@ class DatabaseManager:
         """Setup database-specific features like full-text search"""
         dialect_name = self.engine.dialect.name
 
-        if dialect_name == "mysql":
-            configure_mysql_fulltext(self.engine)
-        elif dialect_name == "postgresql":
+        if dialect_name == "postgresql":
             configure_postgresql_fts(self.engine)
-        elif dialect_name == "sqlite":
-            configure_sqlite_fts(self.engine)
+        else:
+            print(f"⚠️ Full-text search not configured for {dialect_name}")
+       
 
     def create_tables(self):
         """Create all tables"""

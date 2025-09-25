@@ -2,7 +2,7 @@
 Database Auto-Creation System
 
 This module automatically creates databases if they don't exist, supporting
-PostgreSQL and MySQL with proper error handling and security validation.
+PostgreSQL with proper error handling and security validation.
 """
 
 import ssl
@@ -17,7 +17,7 @@ from .connection_utils import DatabaseConnectionUtils
 
 
 class DatabaseAutoCreator:
-    """Handles automatic database creation for PostgreSQL and MySQL"""
+    """Handles automatic database creation for PostgreSQL"""
 
     def __init__(self, schema_init: bool = True):
         """
@@ -84,8 +84,6 @@ class DatabaseAutoCreator:
 
             if engine == "postgresql":
                 return self._postgresql_database_exists(components)
-            elif engine == "mysql":
-                return self._mysql_database_exists(components)
             else:
                 logger.warning(f"Database existence check not supported for {engine}")
                 return False
@@ -114,71 +112,6 @@ class DatabaseAutoCreator:
             logger.error(f"PostgreSQL database existence check failed: {e}")
             return False
 
-    def _get_mysql_connect_args(self, original_url: str) -> Dict:
-        """Get MySQL connection arguments with SSL support for system database connections."""
-        connect_args = {"charset": "utf8mb4"}
-
-        # Parse original URL for SSL parameters
-        parsed = urlparse(original_url)
-        if parsed.query:
-            query_params = parse_qs(parsed.query)
-
-            # Handle SSL parameters for PyMySQL - same logic as sqlalchemy_manager
-            if any(key in query_params for key in ["ssl", "ssl_disabled"]):
-                if query_params.get("ssl", ["false"])[0].lower() == "true":
-                    # Enable SSL with secure configuration for required secure transport
-                    connect_args["ssl"] = {
-                        "ssl_disabled": False,
-                        "check_hostname": False,
-                        "verify_mode": ssl.CERT_NONE,
-                    }
-                    # Also add ssl_disabled=False for PyMySQL
-                    connect_args["ssl_disabled"] = False
-                elif query_params.get("ssl_disabled", ["true"])[0].lower() == "false":
-                    # Enable SSL with secure configuration for required secure transport
-                    connect_args["ssl"] = {
-                        "ssl_disabled": False,
-                        "check_hostname": False,
-                        "verify_mode": ssl.CERT_NONE,
-                    }
-                    # Also add ssl_disabled=False for PyMySQL
-                    connect_args["ssl_disabled"] = False
-
-        return connect_args
-
-    def _mysql_database_exists(self, components: Dict[str, str]) -> bool:
-        """Check if MySQL database exists."""
-        try:
-            # Connect to mysql system database with SSL support
-            connect_args = self._get_mysql_connect_args(components["original_url"])
-            engine = create_engine(components["default_url"], connect_args=connect_args)
-
-            with engine.connect() as conn:
-                result = conn.execute(
-                    text(
-                        "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = :dbname"
-                    ),
-                    {"dbname": components["database"]},
-                )
-                exists = result.fetchone() is not None
-
-            engine.dispose()
-            return exists
-
-        except ModuleNotFoundError as e:
-            if "mysql" in str(e).lower():
-                logger.error(f"MySQL database existence check failed: {e}")
-                error_msg = (
-                    "❌ MySQL driver not found for database existence check. Install one of:\n"
-                    "- pip install mysql-connector-python\n"
-                    "- pip install PyMySQL\n"
-                    "- pip install memorisdk[mysql]"
-                )
-                logger.error(error_msg)
-            return False
-        except Exception as e:
-            logger.error(f"MySQL database existence check failed: {e}")
-            return False
 
     def _create_database(self, components: Dict[str, str]) -> None:
         """Create the target database."""
@@ -186,8 +119,6 @@ class DatabaseAutoCreator:
 
         if engine == "postgresql":
             self._create_postgresql_database(components)
-        elif engine == "mysql":
-            self._create_mysql_database(components)
         else:
             raise ValueError(f"Database creation not supported for {engine}")
 
@@ -229,57 +160,6 @@ class DatabaseAutoCreator:
 
         except Exception as e:
             raise RuntimeError(f"Unexpected error creating PostgreSQL database: {e}")
-
-    def _create_mysql_database(self, components: Dict[str, str]) -> None:
-        """Create MySQL database."""
-        try:
-            logger.info(f"Creating MySQL database '{components['database']}'...")
-
-            # Connect to mysql system database with SSL support
-            connect_args = self._get_mysql_connect_args(components["original_url"])
-            engine = create_engine(components["default_url"], connect_args=connect_args)
-
-            with engine.connect() as conn:
-                # Create database (can't use parameters for database name)
-                # Database name is already validated, so this is safe
-                conn.execute(
-                    text(
-                        f'CREATE DATABASE `{components["database"]}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
-                    )
-                )
-                conn.commit()
-
-            engine.dispose()
-            logger.info(
-                f"MySQL database '{components['database']}' created successfully"
-            )
-
-        except ModuleNotFoundError as e:
-            if "mysql" in str(e).lower():
-                error_msg = (
-                    "❌ MySQL driver not found for database creation. Install one of:\n"
-                    "- pip install mysql-connector-python\n"
-                    "- pip install PyMySQL\n"
-                    "- pip install memorisdk[mysql]"
-                )
-                logger.error(error_msg)
-                raise RuntimeError(error_msg)
-            else:
-                raise RuntimeError(f"Missing dependency for database creation: {e}")
-        except (OperationalError, ProgrammingError) as e:
-            error_msg = str(e)
-            if "database exists" in error_msg.lower():
-                logger.info(f"MySQL database '{components['database']}' already exists")
-                return
-            elif "access denied" in error_msg.lower():
-                raise PermissionError(
-                    f"Insufficient permissions to create database '{components['database']}'"
-                )
-            else:
-                raise RuntimeError(f"Failed to create MySQL database: {e}")
-
-        except Exception as e:
-            raise RuntimeError(f"Unexpected error creating MySQL database: {e}")
 
     def get_database_info(self, connection_string: str) -> Dict[str, str]:
         """

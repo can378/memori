@@ -10,9 +10,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 class DatabaseType(str, Enum):
     """Supported database types"""
-
-    SQLITE = "sqlite"
-    MYSQL = "mysql"
     POSTGRESQL = "postgresql"
 
 

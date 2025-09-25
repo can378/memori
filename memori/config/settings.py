@@ -8,6 +8,10 @@ from typing import Any, Dict, Optional, Union
 
 from pydantic import BaseModel, Field, validator
 
+from dotenv import load_dotenv
+import os
+load_dotenv()
+DB_URL = os.getenv("POSTGRE_DB_URL")
 
 class LogLevel(str, Enum):
     """Logging levels"""
@@ -21,10 +25,8 @@ class LogLevel(str, Enum):
 
 class DatabaseType(str, Enum):
     """Supported database types"""
-
-    SQLITE = "sqlite"
     POSTGRESQL = "postgresql"
-    MYSQL = "mysql"
+    
 
 
 class RetentionPolicy(str, Enum):
@@ -40,10 +42,10 @@ class DatabaseSettings(BaseModel):
     """Database configuration settings"""
 
     connection_string: str = Field(
-        default="sqlite:///memori.db", description="Database connection string"
+        default=DB_URL, description="Database connection string"
     )
     database_type: DatabaseType = Field(
-        default=DatabaseType.SQLITE, description="Type of database backend"
+        default=DatabaseType.POSTGRESQL, description="Type of database backend"
     )
     template: str = Field(default="basic", description="Database template to use")
     pool_size: int = Field(default=10, ge=1, le=100, description="Connection pool size")
@@ -63,7 +65,7 @@ class DatabaseSettings(BaseModel):
             raise ValueError("Connection string cannot be empty")
 
         # Basic validation for supported protocols
-        valid_prefixes = ["sqlite://", "sqlite:///", "postgresql://", "mysql://"]
+        valid_prefixes = ["postgresql://"]
         if not any(v.startswith(prefix) for prefix in valid_prefixes):
             raise ValueError(f"Unsupported database type in connection string: {v}")
 
