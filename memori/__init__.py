@@ -29,7 +29,7 @@ from .database.connectors import MySQLConnector, PostgreSQLConnector, SQLiteConn
 from .database.queries import BaseQueries, ChatQueries, EntityQueries, MemoryQueries
 
 # Wrapper integrations
-from .integrations import MemoriAnthropic, MemoriOpenAI
+from .integrations import MemoriOpenAI
 
 # Tools and integrations
 from .tools.memory_tool import MemoryTool, create_memory_search_tool, create_memory_tool
@@ -109,7 +109,6 @@ _all_components = [
     "create_memory_search_tool",
     # Integrations
     "MemoriOpenAI",
-    "MemoriAnthropic",
     # Pydantic Models
     "ProcessedMemory",
     "MemoryCategory",

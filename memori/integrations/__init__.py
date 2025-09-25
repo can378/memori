@@ -35,15 +35,11 @@ from typing import Any, Dict, List
 
 from loguru import logger
 
-# Legacy imports (all deprecated)
-from . import anthropic_integration, litellm_integration, openai_integration
-
 __all__ = [
     # New interceptor classes (recommended)
     "MemoriOpenAIInterceptor",
     # Wrapper classes for direct SDK usage (legacy)
     "MemoriOpenAI",
-    "MemoriAnthropic",
     # Factory functions
     "create_openai_client",
     "setup_openai_interceptor",
@@ -52,7 +48,6 @@ __all__ = [
 
 # For backward compatibility, provide simple passthrough
 try:
-    from .anthropic_integration import MemoriAnthropic
     from .openai_integration import (
         MemoriOpenAI,
         MemoriOpenAIInterceptor,
@@ -68,12 +63,6 @@ try:
                 "✅ NEW RECOMMENDED WAY: Use MemoriOpenAIInterceptor or memori.create_openai_client()"
             )
             return MemoriOpenAI
-        elif name == "MemoriAnthropic":
-            logger.warning(
-                "🚨 MemoriAnthropic wrapper class is deprecated!\n"
-                "✅ NEW SIMPLE WAY: Use memori.enable() and import anthropic normally"
-            )
-            return MemoriAnthropic
         elif name in [
             "MemoriOpenAIInterceptor",
             "create_openai_client",
